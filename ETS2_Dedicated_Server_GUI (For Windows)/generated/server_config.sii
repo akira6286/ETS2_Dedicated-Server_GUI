@@ -13,7 +13,7 @@ server_config : _nameless.25e.b6cc.40a0 {
     query_virtual_port: 101
     connection_dedicated_port: 27015
     query_dedicated_port: 27016
-    server_logon_token: "5358979611421FCB56605BB4D023980F"
+    server_logon_token: "選填，可不填選填，可不填"
     player_damage: false
     traffic: true
     hide_in_company: false

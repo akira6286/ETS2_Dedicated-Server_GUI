@@ -124,7 +124,7 @@ class ServerConfigGUI:
         if path:
             self.sii_file_var.set(os.path.basename(path))
 
-    # 生成 .sii (只生成到 ./generated，1 秒後搬到 OneDrive)
+        # 生成 .sii (生成到 ./generated，1 秒後搬到 OneDrive)
     def generate_sii(self):
         password = self.password_var.get()
         if password == "預設空白為無密碼":
@@ -143,24 +143,31 @@ class ServerConfigGUI:
         }
 
         try:
-            os.makedirs("generated", exist_ok=True)
-            self.generated_file = config_generator.generate_server_sii(self.sii_file_var.get(), settings)
-            messagebox.showinfo("成功", f"已生成 {self.generated_file} (./generated)")
+            # ✅ 取得目前執行位置
+            current_dir = os.getcwd()
+            generated_dir = os.path.join(current_dir, "generated")
+            os.makedirs(generated_dir, exist_ok=True)
+
+            # ✅ 明確指定生成檔案的路徑
+            sii_filename = self.sii_file_var.get()
+            sii_output_path = os.path.join(generated_dir, sii_filename)
+
+            # ✅ 呼叫 config_generator 並讓它寫入指定路徑
+            self.generated_file = config_generator.generate_server_sii(sii_output_path, settings)
+            messagebox.showinfo("成功", f"已生成設定檔：\n{sii_output_path}")
 
             # 更新 config.ini
             self.update_token_in_config(token)
 
-            # 延遲 1 秒搬檔案到 OneDrive
+            # ✅ 延遲搬移到 OneDrive
             def move_to_onedrive():
                 try:
                     onedrive_docs_dir = os.path.join(os.path.expanduser("~"), "OneDrive", "Documents", "Euro Truck Simulator 2")
                     os.makedirs(onedrive_docs_dir, exist_ok=True)
 
-                    # 搬 server_config.sii
                     dest_path = os.path.join(onedrive_docs_dir, os.path.basename(self.generated_file))
                     shutil.copy2(self.generated_file, dest_path)
 
-                    # 找 ../assets 資料夾
                     assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
                     for filename in ["server_packages.dat", "server_packages.sii"]:
                         src = os.path.join(assets_dir, filename)
@@ -170,7 +177,7 @@ class ServerConfigGUI:
                         else:
                             print(f"[WARN] 找不到 {filename}: {src}")
 
-                    print(f"[INFO] 已搬移所有檔案到 {onedrive_docs_dir}")
+                    print(f"[INFO] 所有檔案已搬移到 {onedrive_docs_dir}")
                 except Exception as e:
                     print(f"[ERROR] 搬移到 OneDrive 失敗: {e}")
 
@@ -178,6 +185,7 @@ class ServerConfigGUI:
 
         except Exception as e:
             messagebox.showerror("錯誤", str(e))
+
 
     # 更新 token 到 config.ini
     def update_token_in_config(self, token):
