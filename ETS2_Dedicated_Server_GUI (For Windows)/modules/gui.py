@@ -20,7 +20,7 @@ class ServerConfigGUI:
         master.title("ETS2 Server Config Generator & Launcher")
 
         # 標籤
-        labels = ["Lobby Name:", "Description:", "Welcome Message:", "Max Players:", "Password:", "輸出 .sii 檔案:"]
+        labels = ["Lobby Name:", "Description:", "Welcome Message:", "Max Players:", "Password:", "Server Token:", "輸出 .sii 檔案:"]
         for i, text in enumerate(labels):
             tk.Label(master, text=text).grid(row=i, column=0, sticky="e")
 
@@ -30,6 +30,7 @@ class ServerConfigGUI:
         self.welcome_var = tk.StringVar(value="Welcome, Have fun")
         self.max_players_var = tk.IntVar(value=128)
         self.password_var = tk.StringVar(value="")
+        self.token_var = tk.StringVar(value="")
         self.sii_file_var = tk.StringVar(value="server_config.sii")
 
         # Entry
@@ -44,21 +45,28 @@ class ServerConfigGUI:
         self.password_entry.bind("<FocusIn>", self.clear_password_placeholder)
         self.password_entry.bind("<FocusOut>", self.add_password_placeholder)
 
-        tk.Entry(master, textvariable=self.sii_file_var, width=40).grid(row=5, column=1)
+        # Token Entry
+        self.token_entry = tk.Entry(master, textvariable=self.token_var, width=40, fg="grey")
+        self.token_entry.grid(row=5, column=1)
+        self.token_entry.insert(0, "選填，可不填")
+        self.token_entry.bind("<FocusIn>", self.clear_token_placeholder)
+        self.token_entry.bind("<FocusOut>", self.add_token_placeholder)
+
+        tk.Entry(master, textvariable=self.sii_file_var, width=40).grid(row=6, column=1)
 
         # 按鈕
-        tk.Button(master, text="選擇自訂路徑", command=self.select_sii_path).grid(row=5, column=2, padx=5)
-        tk.Button(master, text="生成 .sii", command=self.generate_sii).grid(row=6, column=0, columnspan=3, pady=5)
+        tk.Button(master, text="選擇自訂路徑", command=self.select_sii_path).grid(row=6, column=2, padx=5)
+        tk.Button(master, text="生成 .sii", command=self.generate_sii).grid(row=7, column=0, columnspan=3, pady=5)
 
         self.launch_btn = tk.Button(master, text="啟動伺服器", command=self.launch_server, bg="green", fg="white")
-        self.launch_btn.grid(row=7, column=0, columnspan=1, pady=5)
+        self.launch_btn.grid(row=8, column=0, columnspan=1, pady=5)
         self.stop_btn = tk.Button(master, text="停止伺服器", command=self.stop_server, bg="red", fg="white")
-        self.stop_btn.grid(row=7, column=2, columnspan=1, pady=5)
+        self.stop_btn.grid(row=8, column=2, columnspan=1, pady=5)
 
         # 日誌視窗
-        tk.Label(master, text="伺服器日誌:").grid(row=8, column=0, columnspan=3)
+        tk.Label(master, text="伺服器日誌:").grid(row=9, column=0, columnspan=3)
         self.log_text = scrolledtext.ScrolledText(master, width=80, height=20, state="disabled")
-        self.log_text.grid(row=9, column=0, columnspan=3, padx=5, pady=5)
+        self.log_text.grid(row=10, column=0, columnspan=3, padx=5, pady=5)
 
         self.generated_file = None
         self.refresh_log()
@@ -73,6 +81,17 @@ class ServerConfigGUI:
         if not self.password_var.get():
             self.password_entry.insert(0, "預設空白為無密碼")
             self.password_entry.config(fg="grey")
+
+    # Token placeholder
+    def clear_token_placeholder(self, event):
+        if self.token_var.get() == "選填，可不填":
+            self.token_entry.delete(0, tk.END)
+            self.token_entry.config(fg="black")
+
+    def add_token_placeholder(self, event):
+        if not self.token_var.get():
+            self.token_entry.insert(0, "選填，可不填")
+            self.token_entry.config(fg="grey")
 
     # 選擇生成路徑
     def select_sii_path(self):
@@ -90,13 +109,19 @@ class ServerConfigGUI:
         password = self.password_var.get()
         if password == "預設空白為無密碼":
             password = ""
+        token = self.token_var.get()
+        if token == "選填，可不填":
+            token = ""
+
         settings = {
             "lobby_name": self.lobby_name_var.get(),
             "description": self.description_var.get(),
             "welcome_message": self.welcome_var.get(),
             "max_players": self.max_players_var.get(),
-            "password": password
+            "password": password,
+            "server_logon_token": token
         }
+
         try:
             os.makedirs("generated", exist_ok=True)
             self.generated_file = config_generator.generate_server_sii(self.sii_file_var.get(), settings)

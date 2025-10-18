@@ -10,10 +10,12 @@ def generate_server_sii(output_name, settings):
     """
     直接生成完整 server_config 區塊，不依賴模板或 SIIHandler
     :param output_name: 輸出檔名 (例如 server_config.sii)
-    :param settings: 設定字典，包含 lobby_name, description, welcome_message, password, max_players
+    :param settings: 設定字典，包含 lobby_name, description, welcome_message, password, max_players, server_logon_token
     :return: 生成檔案完整路徑
     """
     output_path = os.path.join(LOCAL_GENERATED_DIR, output_name)
+
+    token_line = f'    server_logon_token: "{settings.get("server_logon_token", "")}"' if settings.get("server_logon_token") else "    server_logon_token:"
 
     content = f"""SiiNunit
 {{
@@ -30,7 +32,7 @@ server_config : _nameless.25e.b6cc.40a0 {{
     query_virtual_port: 101
     connection_dedicated_port: 27015
     query_dedicated_port: 27016
-    server_logon_token:
+{token_line}
     player_damage: false
     traffic: true
     hide_in_company: false
@@ -62,7 +64,8 @@ if __name__ == "__main__":
         "description": "128",
         "welcome_message": "Welcome, Have fun",
         "password": "",
-        "max_players": 128
+        "max_players": 128,
+        "server_logon_token": "MYTOKEN123"
     }
     file_path = generate_server_sii("server_config.sii", settings)
     print(f"生成完成: {file_path}")

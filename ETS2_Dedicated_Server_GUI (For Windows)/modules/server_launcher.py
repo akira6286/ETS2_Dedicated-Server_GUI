@@ -1,3 +1,5 @@
+# modules/server_launcher.py
+
 import os
 import subprocess
 import configparser
@@ -32,7 +34,8 @@ def get_server_path():
             return p
 
     # 找不到，要求使用者選擇
-    root = filedialog.Tk()
+    from tkinter import Tk
+    root = Tk()
     root.withdraw()
     path = filedialog.askopenfilename(title="選擇 ETS2 專用伺服器 exe", filetypes=[("EXE files", "*.exe")])
     if path:
@@ -69,18 +72,22 @@ def launch_server(sii_file_name="server_config.sii"):
     cmd = [server_path, "-config", sii_path, "-log", log_file]
 
     try:
+        # 使用 Popen 啟動並保留全域進程
         server_process = subprocess.Popen(cmd, cwd=os.path.dirname(server_path))
         messagebox.showinfo("成功", f"伺服器已啟動！日誌: {log_file}")
     except Exception as e:
         messagebox.showerror("錯誤", str(e))
 
 def stop_server():
-    """停止伺服器"""
+    """停止伺服器（保證強制關閉）"""
     global server_process
     if server_process and server_process.poll() is None:
-        server_process.terminate()
-        server_process.wait()
-        server_process = None
-        messagebox.showinfo("成功", "伺服器已停止")
+        try:
+            server_process.kill()  # 強制結束
+            server_process.wait()
+            server_process = None
+            messagebox.showinfo("成功", "伺服器已停止")
+        except Exception as e:
+            messagebox.showerror("錯誤", f"停止伺服器失敗: {e}")
     else:
         messagebox.showinfo("提醒", "伺服器未在運行中")
