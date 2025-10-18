@@ -1,59 +1,68 @@
 # modules/config_generator.py
 
 import os
-import shutil
-from config_manager.sii_handler import SIIHandler
-
-# 取得模組所在資料夾
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 模板檔案
-TEMPLATE_PATH = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "config_manager", "templates", "server_config_template.sii")
-)
 
 # 專案內生成資料夾
-LOCAL_GENERATED_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "generated"))
+LOCAL_GENERATED_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "generated"))
+os.makedirs(LOCAL_GENERATED_DIR, exist_ok=True)
 
-def generate_server_sii(output_name, settings_dict):
+def generate_server_sii(output_name, settings):
     """
-    根據模板生成新的 server .sii，只生成有值的欄位
+    直接生成完整 server_config 區塊，不依賴模板或 SIIHandler
     :param output_name: 輸出檔名 (例如 server_config.sii)
-    :param settings_dict: 要修改的設定字典
-    :return: 生成檔案絕對路徑 (在 ./generated 資料夾內)
+    :param settings: 設定字典，包含 lobby_name, description, welcome_message, password, max_players
+    :return: 生成檔案完整路徑
     """
-    if not os.path.exists(TEMPLATE_PATH):
-        raise FileNotFoundError(f"模板檔案不存在: {TEMPLATE_PATH}")
-
-    # 過濾掉空值的設定
-    clean_settings = {k: v for k, v in settings_dict.items() if v != ""}
-
-    # 確保生成資料夾存在
-    os.makedirs(LOCAL_GENERATED_DIR, exist_ok=True)
-
-    # 生成檔案路徑
     output_path = os.path.join(LOCAL_GENERATED_DIR, output_name)
 
-    # 複製模板
-    shutil.copy2(TEMPLATE_PATH, output_path)
+    content = f"""SiiNunit
+{{
+server_config : _nameless.25e.b6cc.40a0 {{
+    lobby_name : "{settings['lobby_name']}"
+    description : "{settings['description']}"
+    welcome_message : "{settings['welcome_message']}"
+    password : "{settings['password']}"
+    max_players : {settings['max_players']}
+    max_vehicles_total: 500
+    max_ai_vehicles_player: 200
+    max_ai_vehicles_player_spawn: 200
+    connection_virtual_port: 100
+    query_virtual_port: 101
+    connection_dedicated_port: 27015
+    query_dedicated_port: 27016
+    server_logon_token:
+    player_damage: false
+    traffic: true
+    hide_in_company: false
+    hide_colliding: true
+    force_speed_limiter: false
+    mods_optioning: true
+    timezones: 0
+    service_no_collision: false
+    in_menu_ghosting: false
+    name_tags: true
+    friends_only: false
+    show_server: true
+    moderator_list: 0
+}}
+}}
+"""
 
-    # 修改設定
-    handler = SIIHandler(output_path)
-    handler.batch_set(clean_settings)
-    handler.save()  # 直接覆蓋 output_path
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(content)
 
-    print(f"[INFO] 已生成: {output_path}")
+    print(f"[INFO] 已生成 .sii: {output_path}")
     return output_path
 
-# 範例測試
+
+# 測試用
 if __name__ == "__main__":
     settings = {
-        "lobby_name": "我的中文伺服器",
-        "description": "128 玩家專用",
-        "welcome_message": "歡迎加入！",
-        "max_players": 128,
-        "password": ""  # 空密碼將不生成 password 行
+        "lobby_name": "Euro Truck Simulator2 Dedicated server 128",
+        "description": "128",
+        "welcome_message": "Welcome, Have fun",
+        "password": "",
+        "max_players": 128
     }
-
-    generated_file = generate_server_sii("server_config.sii", settings)
-    print(f"生成完成: {generated_file}")
+    file_path = generate_server_sii("server_config.sii", settings)
+    print(f"生成完成: {file_path}")

@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, filedialog
 from modules import config_generator, server_launcher
 
-# 日誌路徑（保持原本指向 Documents，但不搬移檔案）
+# 日誌路徑（保持原本指向 Documents，但可不搬移）
 DOCUMENTS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
 LOGS_DIR = os.path.join(DOCUMENTS_DIR, "logs")
 LOG_FILE = os.path.join(LOGS_DIR, "server.log")
@@ -85,7 +85,7 @@ class ServerConfigGUI:
     def generate_sii(self):
         password = self.password_var.get()
         if password == "預設空白為無密碼":
-            password = ""  # 空密碼不生成
+            password = ""
         settings = {
             "lobby_name": self.lobby_name_var.get(),
             "description": self.description_var.get(),
@@ -95,10 +95,7 @@ class ServerConfigGUI:
         }
         try:
             os.makedirs("generated", exist_ok=True)
-            self.generated_file = config_generator.generate_server_sii(
-                self.sii_file_var.get(),
-                settings
-            )
+            self.generated_file = config_generator.generate_server_sii(self.sii_file_var.get(), settings)
             messagebox.showinfo("成功", f"已生成 {self.generated_file} (./generated)")
         except Exception as e:
             messagebox.showerror("錯誤", str(e))
