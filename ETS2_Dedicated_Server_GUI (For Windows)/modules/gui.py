@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, filedialog
 from modules import config_generator, server_launcher
 import threading
+import configparser
 
 # 日誌路徑（保持原本指向 Documents，但可不搬移）
 DOCUMENTS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
@@ -13,6 +14,9 @@ LOGS_DIR = os.path.join(DOCUMENTS_DIR, "logs")
 LOG_FILE = os.path.join(LOGS_DIR, "server.log")
 
 os.makedirs(LOGS_DIR, exist_ok=True)
+
+CONFIG_PATH = os.path.join(os.getcwd(), "config.ini")
+
 
 class ServerConfigGUI:
     def __init__(self, master):
@@ -30,7 +34,7 @@ class ServerConfigGUI:
         self.welcome_var = tk.StringVar(value="Welcome, Have fun")
         self.max_players_var = tk.IntVar(value=128)
         self.password_var = tk.StringVar(value="")
-        self.token_var = tk.StringVar(value="")
+        self.token_var = tk.StringVar()
         self.sii_file_var = tk.StringVar(value="server_config.sii")
 
         # Entry
@@ -46,9 +50,16 @@ class ServerConfigGUI:
         self.password_entry.bind("<FocusOut>", self.add_password_placeholder)
 
         # Token Entry
+        token_from_config = self.read_token_from_config()
+        if token_from_config:
+            self.token_var.set(token_from_config)
+        else:
+            self.token_var.set("選填，可不填")
+
         self.token_entry = tk.Entry(master, textvariable=self.token_var, width=40, fg="grey")
         self.token_entry.grid(row=5, column=1)
-        self.token_entry.insert(0, "選填，可不填")
+        if not token_from_config:
+            self.token_entry.insert(0, "選填，可不填")
         self.token_entry.bind("<FocusIn>", self.clear_token_placeholder)
         self.token_entry.bind("<FocusOut>", self.add_token_placeholder)
 
@@ -84,14 +95,23 @@ class ServerConfigGUI:
 
     # Token placeholder
     def clear_token_placeholder(self, event):
-        if self.token_var.get() == "選填，可不填":
+        if self.token_var.get() == "可不填":
             self.token_entry.delete(0, tk.END)
             self.token_entry.config(fg="black")
 
     def add_token_placeholder(self, event):
         if not self.token_var.get():
-            self.token_entry.insert(0, "選填，可不填")
+            self.token_entry.insert(0, "可不填")
             self.token_entry.config(fg="grey")
+
+    # 讀 token
+    def read_token_from_config(self):
+        config = configparser.ConfigParser()
+        if os.path.exists(CONFIG_PATH):
+            config.read(CONFIG_PATH)
+            if config.has_option("server", "server_token"):
+                return config.get("server", "server_token")
+        return None
 
     # 選擇生成路徑
     def select_sii_path(self):
@@ -127,6 +147,9 @@ class ServerConfigGUI:
             self.generated_file = config_generator.generate_server_sii(self.sii_file_var.get(), settings)
             messagebox.showinfo("成功", f"已生成 {self.generated_file} (./generated)")
 
+            # 更新 config.ini
+            self.update_token_in_config(token)
+
             # 延遲 1 秒搬檔案到 OneDrive
             def move_to_onedrive():
                 try:
@@ -155,6 +178,21 @@ class ServerConfigGUI:
 
         except Exception as e:
             messagebox.showerror("錯誤", str(e))
+
+    # 更新 token 到 config.ini
+    def update_token_in_config(self, token):
+        config = configparser.ConfigParser()
+        if os.path.exists(CONFIG_PATH):
+            config.read(CONFIG_PATH)
+        if not config.has_section("server"):
+            config.add_section("server")
+        if token:
+            config.set("server", "server_token", token)
+        else:
+            if config.has_option("server", "server_token"):
+                config.remove_option("server", "server_token")
+        with open(CONFIG_PATH, "w") as f:
+            config.write(f)
 
     # 啟動伺服器
     def launch_server(self):
