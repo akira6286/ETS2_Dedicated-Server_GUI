@@ -1,3 +1,5 @@
+# modules/gui.py
+
 import os
 import shutil
 import tkinter as tk
@@ -105,9 +107,22 @@ class ServerConfigGUI:
                 try:
                     onedrive_docs_dir = os.path.join(os.path.expanduser("~"), "OneDrive", "Documents", "Euro Truck Simulator 2")
                     os.makedirs(onedrive_docs_dir, exist_ok=True)
+
+                    # 搬 server_config.sii
                     dest_path = os.path.join(onedrive_docs_dir, os.path.basename(self.generated_file))
                     shutil.copy2(self.generated_file, dest_path)
-                    print(f"[INFO] 已搬移到 OneDrive: {dest_path}")
+
+                    # 找 ../assets 資料夾
+                    assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
+                    for filename in ["server_packages.dat", "server_packages.sii"]:
+                        src = os.path.join(assets_dir, filename)
+                        if os.path.exists(src):
+                            shutil.copy2(src, os.path.join(onedrive_docs_dir, filename))
+                            print(f"[INFO] 已搬移 {filename} 到 OneDrive")
+                        else:
+                            print(f"[WARN] 找不到 {filename}: {src}")
+
+                    print(f"[INFO] 已搬移所有檔案到 {onedrive_docs_dir}")
                 except Exception as e:
                     print(f"[ERROR] 搬移到 OneDrive 失敗: {e}")
 

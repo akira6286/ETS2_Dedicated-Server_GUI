@@ -1,9 +1,9 @@
 SiiNunit
 {
 server_config : _nameless.25e.b6cc.40a0 {
-    lobby_name : "1919810"
+    lobby_name : "Euro Truck Simulator2 Dedicated server 128"
     description : "128"
-    welcome_message : "HOMO 9>10"
+    welcome_message : "Welcome, Have fun"
     password : ""
     max_players : 128
     max_vehicles_total: 500
