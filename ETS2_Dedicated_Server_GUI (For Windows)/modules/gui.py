@@ -3,12 +3,12 @@
 import os
 import shutil
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, filedialog
+from tkinter import messagebox, scrolledtext
 from modules import config_generator, server_launcher
 import threading
 import configparser
 
-# 日誌路徑（保持原本指向 Documents，但可不搬移）
+# 日誌路徑
 DOCUMENTS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
 LOGS_DIR = os.path.join(DOCUMENTS_DIR, "logs")
 LOG_FILE = os.path.join(LOGS_DIR, "server.log")
@@ -17,6 +17,8 @@ os.makedirs(LOGS_DIR, exist_ok=True)
 
 CONFIG_PATH = os.path.join(os.getcwd(), "config.ini")
 
+# 固定生成的 .sii 檔名
+SII_FILENAME = "server_config.sii"
 
 class ServerConfigGUI:
     def __init__(self, master):
@@ -24,7 +26,7 @@ class ServerConfigGUI:
         master.title("ETS2 Server Config Generator & Launcher")
 
         # 標籤
-        labels = ["Lobby Name:", "Description:", "Welcome Message:", "Max Players:", "Password:", "Server Token:", "輸出 .sii 檔案:"]
+        labels = ["Lobby Name:", "Description:", "Welcome Message:", "Max Players:", "Password:", "Server Token:"]
         for i, text in enumerate(labels):
             tk.Label(master, text=text).grid(row=i, column=0, sticky="e")
 
@@ -35,7 +37,6 @@ class ServerConfigGUI:
         self.max_players_var = tk.IntVar(value=128)
         self.password_var = tk.StringVar(value="")
         self.token_var = tk.StringVar()
-        self.sii_file_var = tk.StringVar(value="server_config.sii")
 
         # Entry
         tk.Entry(master, textvariable=self.lobby_name_var, width=40).grid(row=0, column=1)
@@ -54,30 +55,27 @@ class ServerConfigGUI:
         if token_from_config:
             self.token_var.set(token_from_config)
         else:
-            self.token_var.set("選填，可不填")
+            self.token_var.set("")
 
         self.token_entry = tk.Entry(master, textvariable=self.token_var, width=40, fg="grey")
         self.token_entry.grid(row=5, column=1)
         if not token_from_config:
-            self.token_entry.insert(0, "選填，可不填")
+            self.token_entry.insert(0, "必填項")
         self.token_entry.bind("<FocusIn>", self.clear_token_placeholder)
         self.token_entry.bind("<FocusOut>", self.add_token_placeholder)
 
-        tk.Entry(master, textvariable=self.sii_file_var, width=40).grid(row=6, column=1)
-
         # 按鈕
-        tk.Button(master, text="選擇自訂路徑", command=self.select_sii_path).grid(row=6, column=2, padx=5)
-        tk.Button(master, text="生成 .sii", command=self.generate_sii).grid(row=7, column=0, columnspan=3, pady=5)
+        tk.Button(master, text="生成 .sii", command=self.generate_sii).grid(row=6, column=0, columnspan=3, pady=5)
 
         self.launch_btn = tk.Button(master, text="啟動伺服器", command=self.launch_server, bg="green", fg="white")
-        self.launch_btn.grid(row=8, column=0, columnspan=1, pady=5)
+        self.launch_btn.grid(row=7, column=0, columnspan=1, pady=5)
         self.stop_btn = tk.Button(master, text="停止伺服器", command=self.stop_server, bg="red", fg="white")
-        self.stop_btn.grid(row=8, column=2, columnspan=1, pady=5)
+        self.stop_btn.grid(row=7, column=2, columnspan=1, pady=5)
 
         # 日誌視窗
-        tk.Label(master, text="伺服器日誌:").grid(row=9, column=0, columnspan=3)
+        tk.Label(master, text="伺服器日誌:").grid(row=8, column=0, columnspan=3)
         self.log_text = scrolledtext.ScrolledText(master, width=80, height=20, state="disabled")
-        self.log_text.grid(row=10, column=0, columnspan=3, padx=5, pady=5)
+        self.log_text.grid(row=9, column=0, columnspan=3, padx=5, pady=5)
 
         self.generated_file = None
         self.refresh_log()
@@ -95,13 +93,13 @@ class ServerConfigGUI:
 
     # Token placeholder
     def clear_token_placeholder(self, event):
-        if self.token_var.get() == "可不填":
+        if self.token_var.get() == "必填項":
             self.token_entry.delete(0, tk.END)
             self.token_entry.config(fg="black")
 
     def add_token_placeholder(self, event):
         if not self.token_var.get():
-            self.token_entry.insert(0, "可不填")
+            self.token_entry.insert(0, "必填項")
             self.token_entry.config(fg="grey")
 
     # 讀 token
@@ -113,18 +111,7 @@ class ServerConfigGUI:
                 return config.get("server", "server_token")
         return None
 
-    # 選擇生成路徑
-    def select_sii_path(self):
-        path = filedialog.asksaveasfilename(
-            defaultextension=".sii",
-            filetypes=[("SII files", "*.sii")],
-            initialdir=os.getcwd(),
-            title="選擇輸出 .sii 檔案"
-        )
-        if path:
-            self.sii_file_var.set(os.path.basename(path))
-
-        # 生成 .sii (生成到 ./generated，1 秒後搬到 OneDrive)
+    # 生成 .sii (固定名稱)
     def generate_sii(self):
         password = self.password_var.get()
         if password == "預設空白為無密碼":
@@ -143,26 +130,21 @@ class ServerConfigGUI:
         }
 
         try:
-            # ✅ 取得目前執行位置
             current_dir = os.getcwd()
             generated_dir = os.path.join(current_dir, "generated")
             os.makedirs(generated_dir, exist_ok=True)
 
-            # ✅ 明確指定生成檔案的路徑
-            sii_filename = self.sii_file_var.get()
-            sii_output_path = os.path.join(generated_dir, sii_filename)
+            sii_output_path = os.path.join(generated_dir, SII_FILENAME)
 
-            # ✅ 呼叫 config_generator 並讓它寫入指定路徑
             self.generated_file = config_generator.generate_server_sii(sii_output_path, settings)
             messagebox.showinfo("成功", f"已生成設定檔：\n{sii_output_path}")
 
-            # 更新 config.ini
             self.update_token_in_config(token)
 
-            # ✅ 延遲搬移到 OneDrive
+            # 延遲搬移到 OneDrive
             def move_to_onedrive():
                 try:
-                    onedrive_docs_dir = os.path.join(os.path.expanduser("~"), "OneDrive", "Documents", "Euro Truck Simulator 2")
+                    onedrive_docs_dir = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
                     os.makedirs(onedrive_docs_dir, exist_ok=True)
 
                     dest_path = os.path.join(onedrive_docs_dir, os.path.basename(self.generated_file))
@@ -185,7 +167,6 @@ class ServerConfigGUI:
 
         except Exception as e:
             messagebox.showerror("錯誤", str(e))
-
 
     # 更新 token 到 config.ini
     def update_token_in_config(self, token):

@@ -1,6 +1,6 @@
 SiiNunit
 {
-server_config : _nameless.25e.b6cc.40a0 {
+server_config : _nameless.0000 {
 lobby_name :
 description :
 welcome_message :
@@ -13,7 +13,7 @@ max_players :
  query_virtual_port: 101
  connection_dedicated_port: 27015
  query_dedicated_port: 27016
- server_logon_token: 
+ server_logon_token:
  player_damage: false
  traffic: true
  hide_in_company: false

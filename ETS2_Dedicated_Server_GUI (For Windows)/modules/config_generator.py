@@ -3,7 +3,7 @@
 import os
 
 # 專案內生成資料夾
-LOCAL_GENERATED_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "generated"))
+LOCAL_GENERATED_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
 os.makedirs(LOCAL_GENERATED_DIR, exist_ok=True)
 
 def generate_server_sii(output_name, settings):
