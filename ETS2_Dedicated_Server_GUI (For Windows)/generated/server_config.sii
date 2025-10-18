@@ -1,11 +1,11 @@
 SiiNunit
 {
 server_config : _nameless.25e.b6cc.40a0 {
-    lobby_name : "64"
-    description : "64"
-    welcome_message : "64"
-    password : "64"
-    max_players : 64
+    lobby_name : "1919810"
+    description : "128"
+    welcome_message : "HOMO 9>10"
+    password : ""
+    max_players : 128
     max_vehicles_total: 500
     max_ai_vehicles_player: 200
     max_ai_vehicles_player_spawn: 200

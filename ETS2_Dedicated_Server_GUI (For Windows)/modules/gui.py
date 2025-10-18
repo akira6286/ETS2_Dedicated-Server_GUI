@@ -1,7 +1,9 @@
 import os
+import shutil
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, filedialog
 from modules import config_generator, server_launcher
+import threading
 
 # 日誌路徑（保持原本指向 Documents，但可不搬移）
 DOCUMENTS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
@@ -81,7 +83,7 @@ class ServerConfigGUI:
         if path:
             self.sii_file_var.set(os.path.basename(path))
 
-    # 生成 .sii (只生成到 ./generated)
+    # 生成 .sii (只生成到 ./generated，1 秒後搬到 OneDrive)
     def generate_sii(self):
         password = self.password_var.get()
         if password == "預設空白為無密碼":
@@ -97,6 +99,20 @@ class ServerConfigGUI:
             os.makedirs("generated", exist_ok=True)
             self.generated_file = config_generator.generate_server_sii(self.sii_file_var.get(), settings)
             messagebox.showinfo("成功", f"已生成 {self.generated_file} (./generated)")
+
+            # 延遲 1 秒搬檔案到 OneDrive
+            def move_to_onedrive():
+                try:
+                    onedrive_docs_dir = os.path.join(os.path.expanduser("~"), "OneDrive", "Documents", "Euro Truck Simulator 2")
+                    os.makedirs(onedrive_docs_dir, exist_ok=True)
+                    dest_path = os.path.join(onedrive_docs_dir, os.path.basename(self.generated_file))
+                    shutil.copy2(self.generated_file, dest_path)
+                    print(f"[INFO] 已搬移到 OneDrive: {dest_path}")
+                except Exception as e:
+                    print(f"[ERROR] 搬移到 OneDrive 失敗: {e}")
+
+            threading.Timer(1.0, move_to_onedrive).start()
+
         except Exception as e:
             messagebox.showerror("錯誤", str(e))
 
