@@ -7,14 +7,13 @@ from tkinter import filedialog, messagebox
 
 CONFIG_FILE = "config.ini"
 DOCUMENTS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "Euro Truck Simulator 2")
-GENERATED_SII_DIR = DOCUMENTS_DIR
 LOGS_DIR = os.path.join(DOCUMENTS_DIR, "logs")
 
 # 全域儲存 server subprocess
 server_process = None
 
 def get_server_path():
-    """自動偵測或選擇 ETS2 專用伺服器 exe 路徑"""
+    """自動偵測或選擇 ETS2 Dedicated Server exe 路徑"""
     config = configparser.ConfigParser()
     if os.path.exists(CONFIG_FILE):
         config.read(CONFIG_FILE)
@@ -34,10 +33,12 @@ def get_server_path():
             return p
 
     # 找不到，要求使用者選擇
-    from tkinter import Tk
-    root = Tk()
+    root = filedialog.Tk()
     root.withdraw()
-    path = filedialog.askopenfilename(title="選擇 ETS2 專用伺服器 exe", filetypes=[("EXE files", "*.exe")])
+    path = filedialog.askopenfilename(
+        title="選擇 ETS2 Dedicated Server exe",
+        filetypes=[("EXE files", "*.exe")]
+    )
     if path:
         save_path_to_config(path)
         return path
@@ -58,10 +59,10 @@ def launch_server(sii_file_name="server_config.sii"):
 
     server_path = get_server_path()
     if not server_path or not os.path.exists(server_path):
-        messagebox.showerror("錯誤", "找不到 ETS2 專用伺服器 exe")
+        messagebox.showerror("錯誤", "找不到 ETS2 Dedicated Server exe")
         return
 
-    sii_path = os.path.join(GENERATED_SII_DIR, sii_file_name)
+    sii_path = os.path.join(DOCUMENTS_DIR, sii_file_name)
     if not os.path.exists(sii_path):
         messagebox.showerror("錯誤", f"找不到 .sii 設定檔: {sii_path}")
         return
@@ -69,25 +70,31 @@ def launch_server(sii_file_name="server_config.sii"):
     os.makedirs(LOGS_DIR, exist_ok=True)
     log_file = os.path.join(LOGS_DIR, "server.log")
 
-    cmd = [server_path, "-config", sii_path, "-log", log_file]
+    # 讀 token，如果有就帶上
+    config = configparser.ConfigParser()
+    token_args = []
+    if os.path.exists(CONFIG_FILE):
+        config.read(CONFIG_FILE)
+        token = config.get("server", "server_token", fallback="")
+        if token:
+            token_args = ["-steam_server_token", token]
+
+    cmd = [server_path, "-config", sii_path, "-log", log_file] + token_args
 
     try:
-        # 使用 Popen 啟動並保留全域進程
+        # 使用 cwd 指向 Dedicated Server 所在資料夾
         server_process = subprocess.Popen(cmd, cwd=os.path.dirname(server_path))
         messagebox.showinfo("成功", f"伺服器已啟動！日誌: {log_file}")
     except Exception as e:
         messagebox.showerror("錯誤", str(e))
 
 def stop_server():
-    """停止伺服器（保證強制關閉）"""
+    """停止伺服器"""
     global server_process
     if server_process and server_process.poll() is None:
-        try:
-            server_process.kill()  # 強制結束
-            server_process.wait()
-            server_process = None
-            messagebox.showinfo("成功", "伺服器已停止")
-        except Exception as e:
-            messagebox.showerror("錯誤", f"停止伺服器失敗: {e}")
+        server_process.terminate()
+        server_process.wait()
+        server_process = None
+        messagebox.showinfo("成功", "伺服器已停止")
     else:
         messagebox.showinfo("提醒", "伺服器未在運行中")
